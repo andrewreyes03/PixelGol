@@ -1,0 +1,59 @@
+using System.Collections;
+using UnityEngine;
+
+public class DeteccionGol : MonoBehaviour
+{
+    public MarcadorYTemporizador marcadorYTemporizador; // Referencia al script de marcador y temporizador
+    public Transform posicionCentro; // Posición de reinicio del balón
+    public Transform posicionJugadorIzquierda; // Posición inicial del jugador en el lado izquierdo
+    public Transform posicionJugadorDerecha; // Posición inicial del jugador en el lado derecho
+    public Transform jugadorIzquierda; // Referencia al jugador del lado izquierdo
+    public Transform jugadorDerecha; // Referencia al jugador del lado derecho
+    public float duracionPausa = 2f; // Duración de la pausa en segundos
+
+    private void OnTriggerEnter2D(Collider2D colision)
+    {
+        if (colision.CompareTag("Balon"))
+        {
+            if (gameObject.name == "PorteriaIzquierda") // Si el gol es en la portería izquierda
+            {
+                marcadorYTemporizador.AnotarGolNPC(); // Suma un gol al NPC
+            }
+            else if (gameObject.name == "PorteriaDerecha") // Si el gol es en la portería derecha
+            {
+                marcadorYTemporizador.AnotarGolJugador(); // Suma un gol al jugador
+            }
+
+            // Iniciar la pausa y reiniciar posiciones
+            StartCoroutine(PausaYReinicio());
+        }
+    }
+
+    private IEnumerator PausaYReinicio()
+    {
+        Time.timeScale = 0f; // Pausar el juego
+        yield return new WaitForSecondsRealtime(duracionPausa); // Esperar sin afectar Time.timeScale
+
+        Time.timeScale = 1f; // Reanudar el juego
+        ReiniciarPosiciones();
+    }
+
+    private void ReiniciarPosiciones()
+    {
+        Rigidbody2D rbBalon = GameObject.FindGameObjectWithTag("Balon").GetComponent<Rigidbody2D>();
+        rbBalon.linearVelocity = Vector2.zero;
+        rbBalon.angularVelocity = 0f;
+        rbBalon.transform.position = posicionCentro.position;
+
+        ReiniciarJugador(jugadorIzquierda, posicionJugadorIzquierda);
+        ReiniciarJugador(jugadorDerecha, posicionJugadorDerecha);
+    }
+
+    private void ReiniciarJugador(Transform jugador, Transform posicionInicial)
+    {
+        Rigidbody2D rbJugador = jugador.GetComponent<Rigidbody2D>();
+        rbJugador.linearVelocity = Vector2.zero;
+        rbJugador.angularVelocity = 0f;
+        rbJugador.transform.position = posicionInicial.position;
+    }
+}
