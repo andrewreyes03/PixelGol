@@ -1,1 +1,97 @@
-Prueba
+using UnityEngine;
+
+public class ControlJugador : MonoBehaviour
+{
+    public float velocidad = 5f;
+    public float fuerzaSalto = 7f;
+    public float fuerzaPateo = 10f; // Fuerza horizontal para patear el balón
+    public float fuerzaElevacion = 5f; // Fuerza vertical adicional para elevar el balón
+    private Rigidbody2D rb;
+    private bool enSuelo = true;
+    private bool movimientoHabilitado = true; // Variable para habilitar/deshabilitar el movimiento
+    private Rigidbody2D rbBalon; // Referencia al Rigidbody2D del balón
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    void Update()
+    {
+        if (movimientoHabilitado)
+        {
+            // Movimiento horizontal
+            float entradaMovimiento = Input.GetAxis("Horizontal");
+            rb.linearVelocity = new Vector2(entradaMovimiento * velocidad, rb.linearVelocity.y);
+
+            // Saltar
+            if (Input.GetKeyDown(KeyCode.Space) && enSuelo)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, fuerzaSalto);
+                enSuelo = false;
+            }
+
+            // Patear el balón cuando se presiona la tecla 'K'
+            if (Input.GetKeyDown(KeyCode.K) && rbBalon != null)
+            {
+                PatearBalon();
+            }
+        }
+    }
+
+    // Método para patear el balón
+    void PatearBalon()
+    {
+        // Probabilidad de hacer un tiro elevado
+        bool tiroElevado = Random.Range(0, 100) < 60; // 60% de probabilidad de elevar el balón
+
+        // Aplicar fuerza horizontal para patear hacia la derecha
+        Vector2 fuerza = Vector2.right * fuerzaPateo;
+
+        // Si el tiro es elevado, añade una fuerza hacia arriba
+        if (tiroElevado)
+        {
+            fuerza += Vector2.up * fuerzaElevacion;
+        }
+
+        // Aplicar la fuerza al balón
+        rbBalon.AddForce(fuerza, ForceMode2D.Impulse);
+        Debug.Log("Balón pateado" + (tiroElevado ? " con elevación" : ""));
+    }
+
+    // Método para habilitar o deshabilitar el movimiento
+    public void HabilitarMovimiento(bool habilitar)
+    {
+        movimientoHabilitado = habilitar;
+        if (!habilitar)
+        {
+            rb.linearVelocity = Vector2.zero; // Detener al jugador si se desactiva el movimiento
+        }
+    }
+
+    // Detectar colisión con el balón y guardar su Rigidbody2D
+    private void OnCollisionStay2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Balon"))
+        {
+            rbBalon = colision.collider.GetComponent<Rigidbody2D>();
+        }
+    }
+
+    // Cuando el jugador deja de colisionar con el balón
+    private void OnCollisionExit2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Balon"))
+        {
+            rbBalon = null;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Suelo"))
+        {
+            enSuelo = true;
+        }
+    }
+}
