@@ -1,0 +1,71 @@
+using UnityEngine;
+using TMPro;
+
+public class MarcadorYTemporizador : MonoBehaviour
+{
+    public TextMeshProUGUI marcadorTexto; // Referencia al texto del marcador
+    public TextMeshProUGUI temporizadorTexto; // Referencia al texto del temporizador
+    public int golesJugador = 0; // Goles del jugador
+    public int golesNPC = 0; // Goles del NPC
+    public float tiempoRestante = 40f; // Tiempo de partida en segundos
+    private bool juegoEnMarcha = true;
+
+    public ControlJugador controlJugador; // Referencia al script de control del jugador
+    public ControlNPC controlNPC; // Referencia al script de control del NPC
+
+    void Start()
+    {
+        ActualizarMarcador();
+        ActualizarTemporizador();
+    }
+
+    void Update()
+    {
+        if (juegoEnMarcha)
+        {
+            tiempoRestante -= Time.deltaTime;
+            ActualizarTemporizador();
+
+            if (tiempoRestante <= 0)
+            {
+                FinDelJuego();
+            }
+        }
+    }
+
+    public void AnotarGolJugador()
+    {
+        golesJugador++;
+        ActualizarMarcador();
+    }
+
+    public void AnotarGolNPC()
+    {
+        golesNPC++;
+        ActualizarMarcador();
+    }
+
+    void ActualizarMarcador()
+    {
+        marcadorTexto.text = "Jugador: " + golesJugador + " - NPC: " + golesNPC;
+    }
+
+    void ActualizarTemporizador()
+    {
+        int minutos = Mathf.FloorToInt(tiempoRestante / 60);
+        int segundos = Mathf.FloorToInt(tiempoRestante % 60);
+        temporizadorTexto.text = "Tiempo: " + minutos.ToString("00") + ":" + segundos.ToString("00");
+    }
+
+    void FinDelJuego()
+    {
+        juegoEnMarcha = false;
+        temporizadorTexto.text = "Tiempo: 00:00";
+        
+        // Desactivar el movimiento del jugador y el NPC
+        controlJugador.HabilitarMovimiento(false);
+        controlNPC.HabilitarMovimiento(false);
+
+        Debug.Log("¡Fin del juego!");
+    }
+}
