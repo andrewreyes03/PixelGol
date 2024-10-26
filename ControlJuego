@@ -1,0 +1,40 @@
+using UnityEngine;
+using TMPro;
+
+public class ControlJuego : MonoBehaviour
+{
+    public TextMeshProUGUI MarcadorTexto; // Asignado en el Inspector
+    public TextMeshProUGUI TemporizadorTexto; // Asignado en el Inspector
+    public int golesJugador = 0;
+    public int golesNPC = 0;
+    public float tiempoRestante = 40f;
+
+    void Update()
+    {
+        if (TemporizadorTexto != null) // Verificar que la referencia no sea nula
+        {
+            ActualizarTemporizador();
+        }
+        else
+        {
+            Debug.LogError("TemporizadorTexto no está asignado en el Inspector.");
+        }
+
+        if (MarcadorTexto != null) // Verificar que la referencia no sea nula
+        {
+            MarcadorTexto.text = "Jugador: " + golesJugador + " - NPC: " + golesNPC;
+        }
+        else
+        {
+            Debug.LogError("MarcadorTexto no está asignado en el Inspector.");
+        }
+    }
+
+    void ActualizarTemporizador()
+    {
+        tiempoRestante -= Time.deltaTime;
+        int minutos = Mathf.FloorToInt(tiempoRestante / 60);
+        int segundos = Mathf.FloorToInt(tiempoRestante % 60);
+        TemporizadorTexto.text = "Tiempo: " + minutos.ToString("00") + ":" + segundos.ToString("00");
+    }
+}
