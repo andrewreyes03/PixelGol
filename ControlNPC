@@ -1,0 +1,173 @@
+using UnityEngine;
+
+public class ControlNPC : MonoBehaviour
+{
+    public float velocidad = 4f;
+    public float fuerzaSalto = 7f;
+    public float fuerzaPateo = 10f; // Fuerza horizontal para patear el balón
+    public float fuerzaElevacion = 5f; // Fuerza vertical adicional para elevar el balón
+    public float tiempoEntrePateos = 1.5f; // Tiempo de espera entre cada patada
+    private float tiempoUltimoPateo; // Momento en que el NPC pateó el balón por última vez
+    public Transform balon; // Posición del balón
+    public Transform posicionPorteria; // Posición de la portería que el NPC debe defender
+    public float distanciaMaximaDefensa = 7f; // Distancia máxima para entrar en modo defensa
+    public float distanciaMinimaAtaque = 1.5f; // Distancia mínima para considerar atacar el balón
+    private Rigidbody2D rb;
+    private bool enSuelo = true;
+    private bool movimientoHabilitado = true; // Variable para habilitar/deshabilitar el movimiento
+    private Rigidbody2D rbBalon; // Referencia al Rigidbody2D del balón
+
+    // Enum para representar los modos de comportamiento del NPC
+    private enum ModoNPC { Ataque, Defensa }
+    private ModoNPC modoActual = ModoNPC.Defensa;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        tiempoUltimoPateo = -tiempoEntrePateos; // Permite patear inmediatamente al inicio
+    }
+
+    void Update()
+    {
+        if (movimientoHabilitado)
+        {
+            // Determinar la distancia entre el NPC y el balón
+            float distanciaBalon = Vector2.Distance(transform.position, balon.position);
+
+            // Cambiar de modo según la posición del balón
+            if (balon.position.x < 0 || distanciaBalon <= distanciaMaximaDefensa) 
+            {
+                modoActual = ModoNPC.Defensa; // Entra en modo defensa si el balón está en el lado del jugador o cerca de la portería
+            }
+            else
+            {
+                modoActual = ModoNPC.Ataque; // Entra en modo ataque si el balón está en el lado del NPC o en una posición neutra
+            }
+
+            // Ejecutar el comportamiento en función del modo actual
+            switch (modoActual)
+            {
+                case ModoNPC.Ataque:
+                    SeguirBalon(distanciaBalon);
+                    break;
+
+                case ModoNPC.Defensa:
+                    RegresarAPorteria();
+                    break;
+            }
+
+            // Saltar si está en el suelo y cerca del balón
+            if (enSuelo && distanciaBalon <= distanciaMinimaAtaque && balon.position.y > transform.position.y)
+            {
+                Saltar();
+            }
+
+            // Patear el balón si está en rango y ha pasado suficiente tiempo desde la última patada
+            if (rbBalon != null && Time.time >= tiempoUltimoPateo + tiempoEntrePateos)
+            {
+                PatearBalon();
+            }
+        }
+    }
+
+    // Método para regresar a la portería y defender
+    void RegresarAPorteria()
+    {
+        float distanciaPorteria = Vector2.Distance(transform.position, posicionPorteria.position);
+
+        if (distanciaPorteria > 0.5f)
+        {
+            if (transform.position.x > posicionPorteria.position.x)
+            {
+                rb.linearVelocity = new Vector2(-velocidad, rb.linearVelocity.y); // Mover hacia la izquierda
+            }
+            else if (transform.position.x < posicionPorteria.position.x)
+            {
+                rb.linearVelocity = new Vector2(velocidad, rb.linearVelocity.y); // Mover hacia la derecha
+            }
+        }
+        else
+        {
+            rb.linearVelocity = Vector2.zero; // Detenerse al estar en la portería
+        }
+    }
+
+    // Método para seguir el balón cuando está en modo ataque
+    void SeguirBalon(float distanciaBalon)
+    {
+        if (distanciaBalon <= distanciaMinimaAtaque)
+        {
+            rb.linearVelocity = Vector2.zero; // Detenerse si está en posición de patear
+        }
+        else
+        {
+            if (balon.position.x > transform.position.x)
+            {
+                rb.linearVelocity = new Vector2(velocidad, rb.linearVelocity.y); // Mover hacia la derecha
+            }
+            else if (balon.position.x < transform.position.x)
+            {
+                rb.linearVelocity = new Vector2(-velocidad, rb.linearVelocity.y); // Mover hacia la izquierda
+            }
+        }
+    }
+
+    // Método para patear el balón con posibilidad de elevación
+    void PatearBalon()
+    {
+        bool tiroElevado = Random.Range(0, 100) < 40; // 40% de probabilidad de elevar el balón
+
+        Vector2 fuerza = Vector2.left * fuerzaPateo;
+
+        if (tiroElevado)
+        {
+            fuerza += Vector2.up * fuerzaElevacion;
+        }
+
+        rbBalon.AddForce(fuerza, ForceMode2D.Impulse);
+        tiempoUltimoPateo = Time.time; // Actualiza el tiempo de la última patada
+    }
+
+    // Método para saltar estratégicamente
+    void Saltar()
+    {
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, fuerzaSalto);
+        enSuelo = false;
+    }
+
+    // Método para habilitar o deshabilitar el movimiento del NPC
+    public void HabilitarMovimiento(bool habilitar)
+    {
+        movimientoHabilitado = habilitar;
+        if (!habilitar)
+        {
+            rb.linearVelocity = Vector2.zero; // Detener al NPC si se desactiva el movimiento
+        }
+    }
+
+    // Detectar colisión con el balón y guardar su Rigidbody2D
+    private void OnCollisionStay2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Balon"))
+        {
+            rbBalon = colision.collider.GetComponent<Rigidbody2D>();
+        }
+    }
+
+    // Cuando el NPC deja de colisionar con el balón
+    private void OnCollisionExit2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Balon"))
+        {
+            rbBalon = null;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D colision)
+    {
+        if (colision.collider.CompareTag("Suelo"))
+        {
+            enSuelo = true;
+        }
+    }
+}
